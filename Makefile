@@ -1,16 +1,20 @@
 TARGET = exec
 
+CC = gcc
+CFLAGS = -Wall -Wextra
+LDFLAGS = 
+
 #$(TARGET): main.0 lib.a
-#	gcc $^ -0 $@
+#	$(CC) $^ $(CFLAGS) -0 $@ $(LDFLAGS)
 
-debug: main.0 lib.a
-	gcc $^ -Od -0 $(TARGET)
+debug: main.o lib.a
+	$(CC) $^ $(CFLAGS) -Od -o $(TARGET) $(LDFLAGS)
 
-release: main.0 lib.a
-	gcc $^ -O3 -0 $(TARGET)
+release: main.o lib.a
+	$(CC) $^ $(CFLAGS) -O3 -o $(TARGET) $(LDFLAGS)
 
 main.o: main.c
-	gcc -c $< -lpthread -o $@
+	$(CC) -c $(CFLAGS) $< -lpthread -o $@ $(LDFLAGS)
 
 lib.a: lib.o
 	ar rcs $@  $<
