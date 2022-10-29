@@ -1,9 +1,13 @@
 #ifndef _QUEUE_H_
 #define _QUEUE_H_
 
+//#define SPINLOCK
+#ifndef SPIN_LOCK
 #include <pthread.h>
+#endif
 
 #include "common.h"
+#include "spinlock.h"
 
 #define MAX_QUEUE_LENGHT 16
 
@@ -23,7 +27,19 @@ typedef struct yielded_task {
     gp_regs  gprs;
 } yielded_task;
 
+#ifdef SPINLOCK
+extern void save_and_yield_impl(yielded_task*, volatile s32*);
+#define LOCK volatile s32
+#define LOCK_INIT tasks_q->lock = 0
+#define lock_lock spinlock_lock
+#define lock_unlock spinlock_unlock
+#else
 extern void save_and_yield_impl(yielded_task*, pthread_mutex_t*);
+#define LOCK pthread_mutex_t 
+#define LOCK_INIT
+#define lock_lock pthread_mutex_lock
+#define lock_unlock pthread_mutex_unlock
+#endif
 
 typedef void(*task)(void*);
 
@@ -35,37 +51,38 @@ typedef struct next_task {
 #define define_task_queue(name)\
 typedef struct name##_task_queue {\
     name##_task tasks[MAX_QUEUE_LENGHT];\
-    pthread_mutex_t mtx_lock;\
+    LOCK lock;\
     int read_idx;\
     int write_idx;\
     int read_round;\
     int write_round;\
 } name##_task_queue;\
 void init_##name##_queue(name##_task_queue* tasks_q) {\
+    LOCK_INIT;\
     tasks_q->write_idx = 0;\
     tasks_q->read_idx = 0;\
     tasks_q->write_round = 0;\
     tasks_q->read_round = 0;\
 }\
 BOOL try_pop_##name##_task_queue(name##_task_queue* tasks_q, name##_task* task) {\
-    pthread_mutex_lock(&tasks_q->mtx_lock);\
+    lock_lock(&tasks_q->lock);\
     if (tasks_q->write_idx == tasks_q->read_idx \
         && tasks_q->write_round == tasks_q->read_round) {\
-        pthread_mutex_unlock(&tasks_q->mtx_lock);\
+        lock_unlock(&tasks_q->lock);\
         puts("The queue is empty.");\
         return FALSE;\
     }\
     tasks_q->read_round ^= (tasks_q->read_idx == (MAX_QUEUE_LENGHT - 1));\
     tasks_q->read_idx = (tasks_q->read_idx + 1) & (MAX_QUEUE_LENGHT - 1);\
     memcpy(task, &tasks_q->tasks[tasks_q->read_idx], sizeof(*task));\
-    pthread_mutex_unlock(&tasks_q->mtx_lock);\
+    lock_unlock(&tasks_q->lock);\
     return TRUE;\
 }\
 BOOL is_empty##name(name##_task_queue* tasks_q) {\
-    pthread_mutex_lock(&tasks_q->mtx_lock);\
+    lock_lock(&tasks_q->lock);\
     BOOL empty = (tasks_q->write_idx == tasks_q->read_idx \
         && tasks_q->write_round == tasks_q->read_round);\
-    pthread_mutex_unlock(&tasks_q->mtx_lock);\
+    lock_unlock(&tasks_q->lock);\
     puts("The queue is empty.");\
     return empty;\
 }
@@ -74,32 +91,32 @@ define_task_queue(next);
 define_task_queue(yielded);
 
 BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q) {
-    pthread_mutex_lock(&tasks_q->mtx_lock);
+    lock_lock(&tasks_q->lock);
     if (tasks_q->write_idx == tasks_q->read_idx
             && tasks_q->write_round != tasks_q->read_round) {
-        pthread_mutex_unlock(&tasks_q->mtx_lock);
+        lock_unlock(&tasks_q->lock);
         puts("The queue is full.");
         return FALSE;
     }
     tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
     const int write_idx = tasks_q->write_idx ;
     tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
-    save_and_yield_impl(&tasks_q->tasks[write_idx ], &tasks_q->mtx_lock); // we also unlock the mutex here
+    save_and_yield_impl(&tasks_q->tasks[write_idx ], &tasks_q->lock); // we also unlock the lock here
     return TRUE;
 }    
 
 BOOL try_push_next_task_queue(next_task_queue* tasks_q, next_task* task) {
-    pthread_mutex_lock(&tasks_q->mtx_lock);
+    lock_lock(&tasks_q->lock);
     if (tasks_q->write_idx == tasks_q->read_idx
             && tasks_q->write_round != tasks_q->read_round) {
-        pthread_mutex_unlock(&tasks_q->mtx_lock);
+        lock_unlock(&tasks_q->lock);
         puts("The queue is full.");
         return FALSE;
     }
     memcpy(&tasks_q->tasks[tasks_q->write_idx ], task, sizeof(*task));
     tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
     tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
-    pthread_mutex_unlock(&tasks_q->mtx_lock);
+    lock_unlock(&tasks_q->lock);
     return TRUE;
 }    
 

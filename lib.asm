@@ -1,6 +1,10 @@
+; %define SPINLOCK
+
     extern execute_task
+%ifndef SPINLOCK
     extern pthread_mutex_unlock
-    global save_and_yield_impl ; void save_and_yield(yielded_task* yt, pthread_mutex_t*)
+%endif
+    global save_and_yield_impl ; void save_and_yield(yielded_task* yt, volatile s64* || pthread_mutex_lock*)
     global launch_task ; void launch_task(void*, task, u8*)
     global resume_yielded_task ; void resume_yielded_task(yielded_task* yt)
 
@@ -16,10 +20,15 @@ save_and_yield_impl:
     mov qword [rdi+0x28], r13
     mov qword [rdi+0x30], r14
     mov qword [rdi+0x38], r15
-    ;push rdi
+%ifdef SPINLOCK
+    xor eax, eax
+    mov dword [rsi], eax     
+%else
+    push rdi
     mov rdi, rsi
     call pthread_mutex_unlock
-    ;pop rdi
+    pop rdi
+%endif 
     jmp execute_task
 
 launch_task:

@@ -1,8 +1,13 @@
 TARGET = exec
 
+LOCK=SPINLOCK # default value
+
 CC = gcc
-CFLAGS = -Wall -Wextra
-LDFLAGS = -no-pie -lpthread
+CFLAGS = -Wall -Wextra 
+LDFLAGS = -lpthread -D$(LOCK)
+ifeq ($(LOCK),MUTEX)
+	LDFLAGS+= -no-pie
+endif
 
 #$(TARGET): main.0 lib.a
 #	$(CC) $^ $(CFLAGS) -0 $@ $(LDFLAGS)
@@ -20,7 +25,9 @@ lib.a: lib.o
 	ar rcs $@  $<
 
 lib.o: lib.asm
-	nasm -f elf64 $< -o $@
+	nasm -f elf64 -D$(LOCK) $< -o $@
 
 clean:
 	rm -f *.o *.a $(TARGET)
+
+.PHONY: clean 
