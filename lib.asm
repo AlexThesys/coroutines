@@ -1,11 +1,11 @@
     extern execute_task
     extern pthread_mutex_unlock
     global save_and_yield_impl ; void save_and_yield(yielded_task* yt, pthread_mutex_t*)
-    global launch_task ; void launch_task(void*, task*, u8*)
+    global launch_task ; void launch_task(void*, task, u8*)
     global resume_yielded_task ; void resume_yielded_task(yielded_task* yt)
 
     section .text
-save_and_yeild_impl:
+save_and_yield_impl:
     pop rax ; save return address 
     mov qword [rdi], rax
     ; save all callee-preserved registers
