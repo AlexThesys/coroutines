@@ -4,7 +4,7 @@ LOCK=SPINLOCK # default value
 
 CC = gcc
 CFLAGS = -Wall -Wextra 
-LDFLAGS = -lpthread -D$(LOCK)
+LDFLAGS = -lpthread
 ifeq ($(LOCK),MUTEX)
 	LDFLAGS+= -no-pie
 endif
@@ -19,7 +19,7 @@ release: main.o lib.a
 	$(CC) $^ $(CFLAGS) -O3 -o $(TARGET) $(LDFLAGS)
 
 main.o: main.c
-	$(CC) -c $(CFLAGS) $< -o $@ $(LDFLAGS)
+	$(CC) -c $(CFLAGS) $< -o $@ -D$(LOCK)
 
 lib.a: lib.o
 	ar rcs $@  $<
