@@ -2,6 +2,7 @@ TARGET = exec
 LOCK=SPINLOCK # default value
 TYPE=release
 NUM_WORKERS=4
+TASKS_PER_WORKER=1
 CC = gcc
 CFLAGS = -Wall -Wextra 
 ifeq ($(TYPE),release)
@@ -21,7 +22,7 @@ $(TARGET): main.o lib.a
 	$(CC) $^ $(CFLAGS) -o $(TARGET) $(LDFLAGS)
 
 main.o: main.c
-	$(CC) -c $(CFLAGS) $< -o $@ -D$(LOCK) -DNUM_WORKERS=$(NUM_WORKERS)
+	$(CC) -c $(CFLAGS) $< -o $@ -D$(LOCK) -DNUM_WORKERS=$(NUM_WORKERS) -DTASKS_PER_WORKER=$(TASKS_PER_WORKER)
 
 lib.a: lib.o
 	ar rcs $@  $<

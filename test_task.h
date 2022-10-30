@@ -6,8 +6,10 @@
 
 #include "scheduler.h"
 
+//#define TASKS_PER_WORKER 1
+
 enum test_data {
-    td_max_tasks_per_frame = NUM_WORKERS,
+    td_max_tasks_per_frame = NUM_WORKERS * TASKS_PER_WORKER,
     td_rnd_prob = 9,
     td_rnd_max = 16,
     td_active_frames = 8,
