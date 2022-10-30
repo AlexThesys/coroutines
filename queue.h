@@ -11,6 +11,8 @@
 
 #define MAX_QUEUE_LENGHT 16
 
+volatile BOOL force_yielded = FALSE;
+
 typedef struct gp_regs {
     u64 rbx;
     u64 rbp;
@@ -64,20 +66,6 @@ void init_##name##_queue(name##_task_queue* tasks_q) {\
     tasks_q->write_round = 0;\
     tasks_q->read_round = 0;\
 }\
-BOOL try_pop_##name##_task_queue(name##_task_queue* tasks_q, name##_task* task) {\
-    lock_lock(&tasks_q->lock);\
-    if (tasks_q->write_idx == tasks_q->read_idx \
-        && tasks_q->write_round == tasks_q->read_round) {\
-        lock_unlock(&tasks_q->lock);\
-        puts("The queue is empty.");\
-        return FALSE;\
-    }\
-    tasks_q->read_round ^= (tasks_q->read_idx == (MAX_QUEUE_LENGHT - 1));\
-    tasks_q->read_idx = (tasks_q->read_idx + 1) & (MAX_QUEUE_LENGHT - 1);\
-    memcpy(task, &tasks_q->tasks[tasks_q->read_idx], sizeof(*task));\
-    lock_unlock(&tasks_q->lock);\
-    return TRUE;\
-}\
 BOOL is_empty##name(name##_task_queue* tasks_q) {\
     lock_lock(&tasks_q->lock);\
     BOOL empty = (tasks_q->write_idx == tasks_q->read_idx \
@@ -90,20 +78,38 @@ BOOL is_empty##name(name##_task_queue* tasks_q) {\
 define_task_queue(next);
 define_task_queue(yielded);
 
-BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q) {
+BOOL try_pop_next_task_queue(next_task_queue* tasks_q, next_task* task) {
     lock_lock(&tasks_q->lock);
-    if (tasks_q->write_idx == tasks_q->read_idx
-            && tasks_q->write_round != tasks_q->read_round) {
+    if (tasks_q->write_idx == tasks_q->read_idx 
+        && tasks_q->write_round == tasks_q->read_round) {
         lock_unlock(&tasks_q->lock);
-        puts("Yielded task queue is full.");
+        puts("Next task queue is empty.");
         return FALSE;
     }
-    tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
-    const int write_idx = tasks_q->write_idx ;
-    tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
-    save_and_yield_impl(&tasks_q->tasks[write_idx], &tasks_q->lock); // we also unlock the lock here
+    memcpy(task, &tasks_q->tasks[tasks_q->read_idx], sizeof(*task));
+    tasks_q->read_round ^= (tasks_q->read_idx == (MAX_QUEUE_LENGHT - 1));
+    tasks_q->read_idx = (tasks_q->read_idx + 1) & (MAX_QUEUE_LENGHT - 1);
+    puts("Pop task from next tasks queue");
+    lock_unlock(&tasks_q->lock);
     return TRUE;
-}    
+}
+
+BOOL try_pop_yielded_task_queue(yielded_task_queue* tasks_q, yielded_task* task) {
+    lock_lock(&tasks_q->lock);
+    if (tasks_q->write_idx == tasks_q->read_idx 
+        && tasks_q->write_round == tasks_q->read_round) {
+        lock_unlock(&tasks_q->lock);
+        force_yielded = FALSE;
+        puts("Yielded task queue is empty.");
+        return FALSE;
+    }
+    memcpy(task, &tasks_q->tasks[tasks_q->read_idx], sizeof(*task));
+    tasks_q->read_round ^= (tasks_q->read_idx == (MAX_QUEUE_LENGHT - 1));
+    tasks_q->read_idx = (tasks_q->read_idx + 1) & (MAX_QUEUE_LENGHT - 1);
+    puts("Pop task from yielded tasks queue");
+    lock_unlock(&tasks_q->lock);
+    return TRUE;
+}
 
 BOOL try_push_next_task_queue(next_task_queue* tasks_q, next_task* task) {
     lock_lock(&tasks_q->lock);
@@ -117,6 +123,21 @@ BOOL try_push_next_task_queue(next_task_queue* tasks_q, next_task* task) {
     tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
     tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
     lock_unlock(&tasks_q->lock);
+    return TRUE;
+}    
+
+BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q) {
+    lock_lock(&tasks_q->lock);
+    if (tasks_q->write_idx == tasks_q->read_idx
+            && tasks_q->write_round != tasks_q->read_round) {
+        lock_unlock(&tasks_q->lock);
+        puts("Yielded task queue is full.");
+        return FALSE;
+    }
+    tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
+    const int write_idx = tasks_q->write_idx ;
+    tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
+    save_and_yield_impl(&tasks_q->tasks[write_idx], &tasks_q->lock); // we also unlock the lock here
     return TRUE;
 }    
 

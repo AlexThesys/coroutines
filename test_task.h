@@ -9,8 +9,8 @@
 enum test_data {
     td_max_tasks_per_frame = NUM_WORKERS,
     td_rnd_prob = 9,
-    td_rnd_max = 15,
-    td_active_frames = 30,
+    td_rnd_max = 16,
+    td_active_frames = 8,
 };
 
 void critical_task(void*) {
@@ -51,6 +51,7 @@ void random_task_select(int* frame) {
         puts("Stop all workers. Wait...");
         sleep(3);
         puts("Resume all workers");
+        force_yielded = TRUE; // force to complete all the yielded tasks
         resume_all_workers();
     }
 }
