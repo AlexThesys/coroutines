@@ -113,7 +113,7 @@ BOOL try_push_next_task_queue(next_task_queue* tasks_q, next_task* task) {
         puts("Next task queue is full.");
         return FALSE;
     }
-    memcpy(&tasks_q->tasks[tasks_q->write_idx ], task, sizeof(*task));
+    memcpy(&tasks_q->tasks[tasks_q->write_idx], task, sizeof(*task));
     tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
     tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
     lock_unlock(&tasks_q->lock);

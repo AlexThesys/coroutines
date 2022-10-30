@@ -7,9 +7,9 @@
 #include "scheduler.h"
 
 enum test_data {
-    td_max_tasks_per_frame = 4,
+    td_max_tasks_per_frame = NUM_WORKERS,
     td_rnd_prob = 9,
-    td_rnd_max = 0x0a,
+    td_rnd_max = 15,
     td_active_frames = 30,
 };
 
@@ -31,6 +31,20 @@ void waiting_task(void*) {
 }
 
 void random_task_select(int* frame) {
+    const int num_tasks = 1 + rand() % td_max_tasks_per_frame;
+    int i = 0;
+    for (; i < num_tasks; i++) {
+        const int selector = rand() % td_rnd_max;
+        next_task nt;
+        nt.f  = (selector <= td_rnd_prob) ? critical_task : waiting_task;
+        nt.params = NULL;
+        if (!add_next_task(&nt)) {
+            break;
+        }
+    }
+    printf("Pushed %d new tasks to the queue\n", i);
+    sleep(1);
+
     *frame = (*frame + 1) % td_active_frames;
     if (*frame == 0x00) {
         stop_all_workers();
@@ -39,19 +53,5 @@ void random_task_select(int* frame) {
         puts("Resume all workers");
         resume_all_workers();
     }
-
-    const int num_tasks = 1 + rand() % td_max_tasks_per_frame;
-    int i = 0;
-    for (; i < num_tasks; i++) {
-        const int selector = rand() % td_rnd_prob;
-        next_task nt;
-        nt.f  = (selector > 0x09) ? critical_task : waiting_task;
-        nt.params = NULL;
-        if (!add_next_task(&nt)) {
-            break;
-        }
-    }
-    printf("Pushed %d new tasks to the queue\n", i);
-    sleep(1);
 }
 

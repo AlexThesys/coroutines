@@ -11,6 +11,7 @@ int main() {
    // init scheduler
    init_scheduler();
    init_workers();
+   resume_all_workers();
 
     int total_frames = 0;
     int frame = 0;
@@ -19,6 +20,7 @@ int main() {
         total_frames++;
     } while (total_frames != FRAMES_LIM);
 
+    stop_workers = TRUE;
     deinit_workers();
     deinit_scheduler();
     deinit_stacks();
