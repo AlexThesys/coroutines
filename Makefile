@@ -1,9 +1,13 @@
 TARGET = exec
-
 LOCK=SPINLOCK # default value
-
+TYPE=release
 CC = gcc
 CFLAGS = -Wall -Wextra 
+ifeq ($(TYPE),release)
+	CFLAGS+= -O3
+else
+	CFLAGS+= -O0 -g
+endif
 LDFLAGS = -lpthread
 ifeq ($(LOCK),MUTEX)
 	LDFLAGS+= -no-pie
@@ -12,11 +16,8 @@ endif
 #$(TARGET): main.0 lib.a
 #	$(CC) $^ $(CFLAGS) -0 $@ $(LDFLAGS)
 
-debug: main.o lib.a
-	$(CC) $^ $(CFLAGS) -Od -o $(TARGET) $(LDFLAGS)
-
-release: main.o lib.a
-	$(CC) $^ $(CFLAGS) -O3 -o $(TARGET) $(LDFLAGS)
+$(TARGET): main.o lib.a
+	$(CC) $^ $(CFLAGS) -o $(TARGET) $(LDFLAGS)
 
 main.o: main.c
 	$(CC) -c $(CFLAGS) $< -o $@ -D$(LOCK)
