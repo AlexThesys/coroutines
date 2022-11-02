@@ -1,10 +1,11 @@
 ; %define SPINLOCK
 
     extern execute_task
+    extern semaphore_signal ; void semaphore_signal(semaphore* sem) 
 %ifndef SPINLOCK
     extern pthread_mutex_unlock
 %endif
-    global save_and_yield_impl ; void save_and_yield(yielded_task* yt, volatile s64* || pthread_mutex_lock*)
+    global save_and_yield_impl ; void save_and_yield_impl(yielded_task* yt, volatile s64* || pthread_mutex_lock*, semaphore* sem)
     global launch_task ; void launch_task(void*, task, u8*)
     global resume_yielded_task ; void resume_yielded_task(yielded_task* yt)
 
@@ -20,14 +21,16 @@ save_and_yield_impl:
     mov qword [rdi+0x28], r13
     mov qword [rdi+0x30], r14
     mov qword [rdi+0x38], r15
+    push rsi
+    mov rdi, rdx
+    call semaphore_signal
+    pop rsi
 %ifdef SPINLOCK
     xor eax, eax
     mov dword [rsi], eax     
 %else
-    push rdi
     mov rdi, rsi
     call pthread_mutex_unlock
-    pop rdi
 %endif 
     jmp execute_task
 

@@ -30,13 +30,13 @@ typedef struct yielded_task {
 } yielded_task;
 
 #ifdef SPINLOCK
-extern void save_and_yield_impl(yielded_task*, volatile s32*);
+extern void save_and_yield_impl(yielded_task*, volatile s32*, semaphore* sem);
 #define LOCK volatile s32
 #define LOCK_INIT tasks_q->lock = 0
 #define lock_lock spinlock_lock
 #define lock_unlock spinlock_unlock
 #else
-extern void save_and_yield_impl(yielded_task*, pthread_mutex_t*);
+extern void save_and_yield_impl(yielded_task*, pthread_mutex_t*, semaphore* sem);
 #define LOCK pthread_mutex_t 
 #define LOCK_INIT
 #define lock_lock pthread_mutex_lock
@@ -127,7 +127,7 @@ BOOL try_push_next_task_queue(next_task_queue* tasks_q, next_task* task) {
     return TRUE;
 }    
 
-BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q) {
+BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q, semaphore* sem) {
     lock_lock(&tasks_q->lock);
     if (tasks_q->write_idx == tasks_q->read_idx
             && tasks_q->write_round != tasks_q->read_round) {
@@ -139,7 +139,7 @@ BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q) {
     const int write_idx = tasks_q->write_idx ;
     tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
     puts("Pushing task to the yielded_queue");
-    save_and_yield_impl(&tasks_q->tasks[write_idx], &tasks_q->lock); // we also unlock the lock here
+    save_and_yield_impl(&tasks_q->tasks[write_idx], &tasks_q->lock, sem); // we also signal the semaphore and unlock the lock here
     return TRUE;
 }    
 

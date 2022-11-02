@@ -2,9 +2,9 @@
 #define _SCHEDULER_H_
 #include <unistd.h>
 
+#include "semaphore.h"
 #include "queue.h"
 #include "stacks.h"
-#include "semaphore.h"
 
 //#define NUM_WORKERS 4
 
@@ -30,11 +30,7 @@ BOOL add_next_task(next_task* task) {
 }
 
 BOOL try_save_and_yield() {
-    if (try_push_yielded_task_queue(&yielded_tq)) {
-        semaphore_signal(&sem_empty_queue);
-        return TRUE;
-    }
-    return FALSE;
+    return try_push_yielded_task_queue(&yielded_tq, &sem_empty_queue);
 }
 
 void* execute_task(void*); 

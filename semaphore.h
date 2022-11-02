@@ -3,6 +3,8 @@
 
 #include <pthread.h>
 
+#include "common.h"
+
 typedef struct semaphore {
     volatile BOOL do_wait;
     pthread_cond_t cond;
