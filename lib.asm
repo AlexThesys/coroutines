@@ -36,10 +36,18 @@ launch_task:
     mov rbp, rsp
     mov rsp, rdx
     push rbp
+    mov rdx, rsp
+    mov rcx, 0x0F
+    and rdx, rcx
+    not rcx
+    and rsp, rcx ; align the stack
+    push rdx
     sub rsp, 0x08
     ; void* params is already in rdi
     call rsi
     add rsp, 0x08
+    pop rdx
+    or rsp, rdx
     pop rbp
     mov rsp, rbp
     pop rbp

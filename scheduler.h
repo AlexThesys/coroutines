@@ -73,20 +73,28 @@ void resume_all_workers() {
     semaphore_signal_all(&sem_sync);
 }
 
+//static __thread u8* stack_ptr;
+//static __thread u64 stack_id;
+//static __thread next_task n_task;
+//static __thread yielded_task y_task;
+
 void* execute_task(void*) {
-    u8* stack_ptr;
-    u64 stack_id;
-    next_task n_task;
-    yielded_task y_task;
+   u8* stack_ptr;
+   u64 stack_id;
+   next_task n_task;
+   yielded_task y_task;
     while (!stop_workers) {
         // wait for schedulers signal to continue
         semaphore_try_wait(&sem_sync);
        // try executing next task 
         if (!force_yielded && try_pop_next_task_queue(&next_tq, &n_task)
            && get_free_stack(&stack_ptr, &stack_id)) {
+            printf("Acquire stack ID: %d\n", (int)stack_id);
             puts("Launch next task");
             launch_task(n_task.params, n_task.f, stack_ptr);
+            puts("Finished the task");
             set_free_stack(stack_id); // both next and yielded task are going to return here
+            printf("Free stack ID: %d\n", (int)stack_id);
         } else if (try_pop_yielded_task_queue(&yielded_tq, &y_task)) {   // or finish a previously started task
             puts("Resume yielded task");
             resume_yielded_task(&y_task); 

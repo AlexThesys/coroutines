@@ -98,8 +98,8 @@ BOOL try_pop_yielded_task_queue(yielded_task_queue* tasks_q, yielded_task* task)
     lock_lock(&tasks_q->lock);
     if (tasks_q->write_idx == tasks_q->read_idx 
         && tasks_q->write_round == tasks_q->read_round) {
-        lock_unlock(&tasks_q->lock);
         force_yielded = FALSE;
+        lock_unlock(&tasks_q->lock);
         puts("Yielded task queue is empty.");
         return FALSE;
     }
@@ -122,6 +122,7 @@ BOOL try_push_next_task_queue(next_task_queue* tasks_q, next_task* task) {
     memcpy(&tasks_q->tasks[tasks_q->write_idx], task, sizeof(*task));
     tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
     tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
+    puts("Pushed task to the next_queue");
     lock_unlock(&tasks_q->lock);
     return TRUE;
 }    
@@ -137,6 +138,7 @@ BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q) {
     tasks_q->write_round ^= (tasks_q->write_idx == (MAX_QUEUE_LENGHT - 1));
     const int write_idx = tasks_q->write_idx ;
     tasks_q->write_idx = (tasks_q->write_idx + 1) & (MAX_QUEUE_LENGHT - 1);
+    puts("Pushing task to the yielded_queue");
     save_and_yield_impl(&tasks_q->tasks[write_idx], &tasks_q->lock); // we also unlock the lock here
     return TRUE;
 }    
