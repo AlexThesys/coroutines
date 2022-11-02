@@ -11,7 +11,7 @@
 
     section .text
 save_and_yield_impl:
-    pop rax ; save return address 
+    mov rax, qword [rsp] ; save return address ; pop rax
     mov qword [rdi], rax
     ; save all callee-preserved registers
     mov qword [rdi+0x08], rbx
