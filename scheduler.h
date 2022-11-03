@@ -10,6 +10,7 @@
 
 extern void launch_task(void* params, task t, u8*stack_ptr);
 extern void resume_yielded_task(yielded_task*);
+extern u8* set_thread_stack_ptr();
 
 volatile BOOL stop_workers = FALSE;
 
@@ -69,12 +70,16 @@ void resume_all_workers() {
     semaphore_signal_all(&sem_sync);
 }
 
-//static __thread u8* stack_ptr;
-//static __thread u64 stack_id;
-//static __thread next_task n_task;
-//static __thread yielded_task y_task;
+
+static __thread u8* thread_stack_ptr;
+
+BOOL set_once() {
+    thread_stack_ptr = set_thread_stack_ptr();
+    return TRUE;
+}
 
 void* execute_task(void*) {
+   static const __thread BOOL = set_once();
    u8* stack_ptr;
    u64 stack_id;
    next_task n_task;
@@ -87,10 +92,7 @@ void* execute_task(void*) {
            && get_free_stack(&stack_ptr, &stack_id)) {
             printf("Acquire stack ID: %d\n", (int)stack_id);
             puts("Launch next task");
-            launch_task(n_task.params, n_task.f, stack_ptr);
-            puts("Finished the task");
-            set_free_stack(stack_id); // both next and yielded task are going to return here
-            printf("Free stack ID: %d\n", (int)stack_id);
+            launch_task(n_task.params, n_task.f, stack_ptr, stack_id);
         } else if (try_pop_yielded_task_queue(&yielded_tq, &y_task)) {   // or finish a previously started task
             puts("Resume yielded task");
             resume_yielded_task(&y_task); 
