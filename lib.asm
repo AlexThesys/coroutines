@@ -1,10 +1,12 @@
 ; %define SPINLOCK
 
-    extern thread_stack_ptr    
 
-    extern execute_task
+    section .text
+
+    extern execute_task ; void* execute_task(void*)
     extern semaphore_signal ; void semaphore_signal(semaphore* sem) 
-    extern set_free_stack ; void set_free_stack(u64)
+    extern restore_state ; void restore_state(exec_state* state)
+    extern set_free_stack ; void set_free_stack(u64 stack_id)
 %ifndef SPINLOCK
     extern pthread_mutex_unlock
 %endif
@@ -13,7 +15,6 @@
     global resume_yielded_task ; void resume_yielded_task(yielded_task* yt)
     global set_thread_stack_ptr ; u8* set_thread_stack_ptr()
 
-    section .text
 save_and_yield_impl:
     mov rax, qword [rsp] ; save return address ; pop rax
     mov qword [rdi], rax
@@ -53,15 +54,19 @@ launch_task:
     add rsp, 0x08
     pop rdx
     or rsp, rdx
-    pop rdi ; restore stack_id
-    call set_free_stack
-    mov rax, qword [rel thread_stack_ptr wrt ..gottpoff] ; get_address of the original stack of this thread
-    mov rsp, qword [fs:rax] ; restore stack
+    sub rsp, 0x10
+    mov rdi, rsp
+    call restore_state
+    pop r8 ; execute_task address
+    pop rax ; thread_stack_ptr
+    pop rdi ; current stack_id -- argumet for set_free_stack
+    mov rsp, rax ; restore stack
     mov rbp, rsp
-    mov rax, execute_task ; lea rax, [execute_task-0x01]
-    sub rax, 0x01 ; skip push rbp
+    push r8
+    call set_free_stack
+    pop r8
+    lea rax, [r8+0x05] ; skip push rbp
     jmp rax
-    
 
 resume_yielded_task:
     ; save all callee-preserved registers

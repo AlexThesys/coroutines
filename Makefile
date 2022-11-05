@@ -15,9 +15,6 @@ ifeq ($(LOCK),MUTEX)
 	LDFLAGS+= -no-pie
 endif
 
-#$(TARGET): main.0 lib.a
-#	$(CC) $^ $(CFLAGS) -0 $@ $(LDFLAGS)
-
 $(TARGET): main.o lib.a
 	$(CC) $^ $(CFLAGS) -o $(TARGET) $(LDFLAGS)
 
