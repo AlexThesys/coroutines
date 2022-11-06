@@ -1,5 +1,11 @@
 ; %define SPINLOCK
-%define EXECUTE_TASK_OFFSET 0x05
+%ifdef RELEASE
+    %define EXECUTE_TASK_OFFSET 0x11 
+    %define THREAD_STACK_OFFSET 0x28
+%else
+    %define EXECUTE_TASK_OFFSET 0x05
+    %define THREAD_STACK_OFFSET 0x00
+%endif
 
     section .text
 
@@ -15,7 +21,11 @@
     global set_thread_stack_ptr ; u8* set_thread_stack_ptr()
 
 save_and_yield_impl:
+%ifdef RELEASE
+    pop rax
+%else
     mov rax, qword [rsp] ; save return address ; pop rax
+%endif
     mov qword [rdi], rax
     ; save all callee-preserved registers
     mov qword [rdi+0x08], rbx
@@ -42,8 +52,8 @@ save_and_yield_impl:
     call restore_state 
     pop r8 ; execute_task address
     pop rax ; thread_stack_ptr
-    mov rsp, rax
-    mov rbp, rsp
+    lea rsp, [rax-THREAD_STACK_OFFSET] ; restore thread stack
+    mov rbp, rax
     lea rax, [r8+EXECUTE_TASK_OFFSET]
     jmp rax
 
@@ -68,8 +78,8 @@ launch_task:
     pop r8 ; execute_task address
     pop rax ; thread_stack_ptr
     pop rdi ; current stack_id -- argumet for set_free_stack
-    mov rsp, rax ; restore thread stack
-    mov rbp, rsp
+    lea rsp, [rax-THREAD_STACK_OFFSET] ; restore thread stack
+    mov rbp, rax
     push r8
     call set_free_stack
     pop r8
