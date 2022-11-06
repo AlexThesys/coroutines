@@ -1,9 +1,8 @@
 ; %define SPINLOCK
-
+%define EXECUTE_TASK_OFFSET 0x05
 
     section .text
 
-    extern execute_task ; void* execute_task(void*)
     extern semaphore_signal ; void semaphore_signal(semaphore* sem) 
     extern restore_state ; void restore_state(exec_state* state)
     extern set_free_stack ; void set_free_stack(u64 stack_id)
@@ -37,7 +36,16 @@ save_and_yield_impl:
     mov rdi, rsi
     call pthread_mutex_unlock
 %endif 
-    jmp execute_task
+    ; restore state
+    sub rsp, 0x10
+    mov rdi, rsp
+    call restore_state 
+    pop r8 ; execute_task address
+    pop rax ; thread_stack_ptr
+    mov rsp, rax
+    mov rbp, rsp
+    lea rax, [r8+EXECUTE_TASK_OFFSET]
+    jmp rax
 
 launch_task:
     mov rsp, rdx
@@ -60,12 +68,12 @@ launch_task:
     pop r8 ; execute_task address
     pop rax ; thread_stack_ptr
     pop rdi ; current stack_id -- argumet for set_free_stack
-    mov rsp, rax ; restore stack
+    mov rsp, rax ; restore thread stack
     mov rbp, rsp
     push r8
     call set_free_stack
     pop r8
-    lea rax, [r8+0x05] ; skip push rbp
+    lea rax, [r8+EXECUTE_TASK_OFFSET] ; skip push rbp
     jmp rax
 
 resume_yielded_task:
