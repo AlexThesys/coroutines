@@ -131,6 +131,7 @@ BOOL try_push_yielded_task_queue(yielded_task_queue* tasks_q, semaphore* sem) {
     lock_lock(&tasks_q->lock);
     if (tasks_q->write_idx == tasks_q->read_idx
             && tasks_q->write_round != tasks_q->read_round) {
+        force_yielded = TRUE;
         lock_unlock(&tasks_q->lock);
         puts("Yielded task queue is full.");
         return FALSE;
