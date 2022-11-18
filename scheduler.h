@@ -39,7 +39,7 @@ BOOL add_next_task(next_task* task) {
     return FALSE;
 }
 
-BOOL try_save_and_yield() {
+BOOL try_co_yield() {
     return try_push_yielded_task_queue(&yielded_tq, &sem_empty_queue);
 }
 

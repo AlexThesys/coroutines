@@ -21,7 +21,7 @@ void waiting_task(void*) {
     pid_t tid = syscall(SYS_gettid);
     printf("Low prio task started execution on thread %d\n", tid);
     
-    if (try_save_and_yield()) {
+    if (try_co_yield()) {
         printf("Finish execution of a low prio task on thread %d\n", tid);
     } else {
         printf("Low prio task unable to yield execution: finishing now on thread %d\n", tid);

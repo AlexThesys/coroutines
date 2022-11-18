@@ -15,12 +15,12 @@
 %ifndef SPINLOCK
     extern pthread_mutex_unlock
 %endif
-    global save_and_yield_impl ; void save_and_yield_impl(yielded_task* yt, volatile s64* || pthread_mutex_lock*, semaphore* sem)
+    global co_yield_impl ; void co_yield_impl (yielded_task* yt, volatile s64* || pthread_mutex_lock*, semaphore* sem)
     global launch_task ; void launch_task(void*, task, u8*, u64)
     global resume_yielded_task ; void resume_yielded_task(yielded_task* yt)
     global set_thread_stack_ptr ; u8* set_thread_stack_ptr()
 
-save_and_yield_impl:
+co_yield_impl:
 %ifdef RELEASE
     pop rax
 %else
