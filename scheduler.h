@@ -12,7 +12,6 @@
 
 extern void launch_task(void* params, task t, u8*stack_ptr, u64 stack_id);
 extern void resume_yielded_task(yielded_task*);
-extern u8* set_thread_stack_ptr();
 
 volatile BOOL stop_workers = FALSE;
 
@@ -106,6 +105,11 @@ void resume_all_workers() {
 
 static __thread u8* thread_stack_ptr;
 
+void __attribute__ ((noinline)) set_thread_stack_ptr(u8* rsp) {
+    if (!thread_stack_ptr)
+        thread_stack_ptr = rsp;
+}
+
 typedef struct exec_state {
     void* execute_task_address;
     u8* thread_stack_ptr;
@@ -116,9 +120,7 @@ void restore_state(exec_state* state) {
     state->thread_stack_ptr = thread_stack_ptr;    
 }
 
-void* execute_task(void*) {
-    if (! thread_stack_ptr) // save thread stack ptr once
-        thread_stack_ptr = set_thread_stack_ptr();
+void* execute_task_inner(void*) {
     u8* stack_ptr;
     u64 stack_id;
     next_task n_task;

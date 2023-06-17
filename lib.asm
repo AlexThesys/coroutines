@@ -1,24 +1,17 @@
-; %define SPINLOCK
-%ifdef RELEASE
-    %define EXECUTE_TASK_OFFSET 0x11 
-    %define THREAD_STACK_OFFSET 0x28
-%else
-    %define EXECUTE_TASK_OFFSET 0x05
-    %define THREAD_STACK_OFFSET 0x00
-%endif
+    %define STACK_ALIGN 0xFFFFFFFFFFFFFFF0
 
     section .text
 
     extern semaphore_signal ; void semaphore_signal(semaphore* sem) 
     extern restore_state ; void restore_state(exec_state* state)
     extern set_free_stack ; void set_free_stack(u64 stack_id)
-%ifndef SPINLOCK
-    extern pthread_mutex_unlock
-%endif
+    extern execute_task_inner ; void* execute_task_inner(void*)
+    extern set_thread_stack_ptr ; void set_thread_stack_ptr(u8*)
+
     global co_yield_impl ; void co_yield_impl (yielded_task* yt, volatile s64* || pthread_mutex_lock*, semaphore* sem)
     global launch_task ; void launch_task(void*, task, u8*, u64)
     global resume_yielded_task ; void resume_yielded_task(yielded_task* yt)
-    global set_thread_stack_ptr ; u8* set_thread_stack_ptr()
+    global execute_task ; void* execute_task(void*)
 
 co_yield_impl:
 %ifdef RELEASE
@@ -39,22 +32,17 @@ co_yield_impl:
     mov rdi, rdx
     call semaphore_signal
     pop rsi
-%ifdef SPINLOCK
     xor eax, eax
     mov dword [rsi], eax     
-%else
-    mov rdi, rsi
-    call pthread_mutex_unlock
-%endif 
     ; restore state
     sub rsp, 0x10
     mov rdi, rsp
     call restore_state 
     pop r8 ; execute_task address
     pop rax ; thread_stack_ptr
-    lea rsp, [rax-THREAD_STACK_OFFSET] ; restore thread stack
-    mov rbp, rax
-    lea rax, [r8+EXECUTE_TASK_OFFSET]
+    lea rsp, [rax] ; restore thread stack
+    ;mov rbp, rax
+    lea rax, [r8]
     jmp rax
 
 launch_task:
@@ -78,12 +66,12 @@ launch_task:
     pop r8 ; execute_task address
     pop rax ; thread_stack_ptr
     pop rdi ; current stack_id -- argumet for set_free_stack
-    lea rsp, [rax-THREAD_STACK_OFFSET] ; restore thread stack
+    lea rsp, [rax] ; restore thread stack
     mov rbp, rax
     push r8
     call set_free_stack
     pop r8
-    lea rax, [r8+EXECUTE_TASK_OFFSET] ; skip push rbp
+    lea rax, [r8] ; skip push rbp
     jmp rax
 
 resume_yielded_task:
@@ -96,10 +84,18 @@ resume_yielded_task:
     mov r14, qword [rdi+0x30]
     mov r15, qword [rdi+0x38]
     jmp [rdi]
-    
-set_thread_stack_ptr:
-    mov rax, rbp
-    ret
+
+execute_task:
+    ; save original stack ptr in a thread local variable
+    mov rdi, rsp
+    call set_thread_stack_ptr
+    ; align stack ptr
+    push rbp
+    mov rbp, rsp
+    and rsp, STACK_ALIGN
+    call execute_task_inner
+    pop rbp
+    ret 
 
     ;section .data
     ;section .bss
