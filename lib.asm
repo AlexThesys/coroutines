@@ -14,13 +14,13 @@
     global execute_task ; void* execute_task(void*)
 
 co_yield_impl:
-%ifdef RELEASE
-    pop rax
-%else
-    mov rax, qword [rsp] ; save return address ; pop rax
-%endif
+;%ifdef RELEASE
+    pop rax ; pop return address from the stack
+;%else
+;    mov rax, qword [rsp] ; save return address ; pop rax
+;%endif
     mov qword [rdi], rax
-    ; save all callee-preserved registers
+    ; save all callee-preserved gp registers
     mov qword [rdi+0x08], rbx
     mov qword [rdi+0x10], rbp
     mov qword [rdi+0x18], rsp
@@ -75,7 +75,7 @@ launch_task:
     jmp rax
 
 resume_yielded_task:
-    ; save all callee-preserved registers
+    ; save all callee-preserved gp registers
     mov rbx, qword [rdi+0x08]
     mov rbp, qword [rdi+0x10]
     mov rsp, qword [rdi+0x18]
