@@ -31,11 +31,12 @@ next_task_queue next_tq;
 yielded_task_queue yielded_tq;
 
 BOOL add_next_task(next_task* task) {
-    if (try_push_next_task_queue(&next_tq, task)) {
-        semaphore_signal(&sem_empty_queue);
-        return TRUE;
-    }
-    return FALSE;
+    const BOOL res =    try_push_next_task_queue(&next_tq, task)
+                        ? TRUE 
+                        : FALSE;
+        
+    semaphore_signal(&sem_empty_queue);
+    return res;
 }
 
 BOOL try_co_yield() {
