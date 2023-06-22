@@ -94,7 +94,7 @@ execute_task:
     mov rbp, rsp
     and rsp, STACK_ALIGN
     call execute_task_inner
-    mov rsp, rpb
+    mov rsp, rbp
     pop rbp
     ret 
 
