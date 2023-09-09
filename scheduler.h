@@ -66,7 +66,7 @@ void init_workers() {
 void deinit_workers() {
     int result_code = 0;
     for (int i = 0; i < NUM_WORKERS; ++i) {
-        result_code = pthread_join(workers[i], NULL);
+        result_code |= pthread_join(workers[i], NULL);
         assert(!result_code);
     }
 }
