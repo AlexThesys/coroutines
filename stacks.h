@@ -13,6 +13,19 @@ typedef struct stack {
     volatile BOOL is_free;    
 } stack;
 
+/*
+ * Another option could be having a separate "is_free" bitfield.
+ * Modifing it would have to invole a CAS-loop akin to the following.
+ * Pseudocode:
+ volatile u32 bitfield;
+ const u32 index;
+ ......
+ do {
+     const u32 old_value = index;
+     const u32 new_value = old_value | (1u << index);
+ } while (old_value != threading::cmpxchg(&bitfield, new_value, old_value)); // (value, target, compare)
+*/
+
 stack stacks[NUM_STACKS];
 
 void init_stacks() {
